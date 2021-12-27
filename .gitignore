@@ -1,0 +1,18 @@
+node_modules
+.env
+coverage
+coverage.json
+typechain
+
+.DS_Store
+.env.example
+.eslintignore
+.eslintrc.js
+.npmignore
+.prettierignore
+.solhint.json
+.solhintignore
+
+#Hardhat files
+cache
+artifacts
