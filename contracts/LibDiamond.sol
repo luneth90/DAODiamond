@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma  solidity ^0.8.10;
+pragma  solidity ^0.8.11;
 pragma abicoder v2;
 
 import "./IDiamondCut.sol";
@@ -9,7 +9,7 @@ import "hardhat/console.sol";
 library LibDiamond {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut, address _init, bytes _calldata);
 
-    function diamondCut(
+    function diamondCutInit(
         IDiamondCut.FacetCut[] memory _diamondCut,
         address _init,
         bytes memory _calldata) internal{
@@ -22,16 +22,16 @@ library LibDiamond {
             initializeDiamondCut(_init, _calldata);
     }
 
-    function executeDiamondCut(uint256 selectorCount, IDiamondCut.FacetCut memory cut) internal returns (uint256) {
+    function executeDiamondCut(uint256 selectorCount, IDiamondCut.FacetCut memory cut) internal returns (uint256 selectorCount_) {
         if (cut.action == IDiamondCut.FacetCutAction.Add) {
             require(cut.facetAddress != address(0), "error");
             enforceHasContractCode(cut.facetAddress, "no code");
 
-            return _handleAddCut(selectorCount,cut);
+            selectorCount_ = _handleAddCut(selectorCount,cut);
         }
     }
 
-    function _handleAddCut(uint256 selectorCount, IDiamondCut.FacetCut memory cut) internal returns (uint256){
+    function _handleAddCut(uint256 selectorCount, IDiamondCut.FacetCut memory cut) internal returns (uint256 selectorCount_){
         LibDiamondStorage.DiamondStorage storage ds = LibDiamondStorage.diamondStorage();
 
         for(uint256 selectorIndex; selectorIndex < cut.functionSelectors.length; selectorIndex ++){
@@ -39,14 +39,14 @@ library LibDiamond {
             address oldFacetAddress = ds.facets[selector].facetAddress;
             require(oldFacetAddress == address(0),"Can not add , already exists.");
 
-            ds.facets[selector] = LibDiamondStorage.Facet(
+            ds.facets[selector] = LibDiamondStorage.FacetItem(
                 cut.facetAddress,
                 uint16(selectorCount)
             ); 
             ds.selectors.push(selector);
             selectorCount ++;
         }
-        return selectorCount;
+        selectorCount_ = selectorCount;
     }
 
     function initializeDiamondCut(address _init, bytes memory _calldata) internal {

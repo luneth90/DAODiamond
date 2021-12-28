@@ -1,19 +1,21 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.11;
 pragma abicoder v2;
 
 import "hardhat/console.sol";
 import "./IDiamondLoupe.sol";
 import "./LibDiamondStorage.sol";
+import "./IERC165.sol";
 
-contract DiamondLoupeFacet is IDiamondLoupe {
+contract DiamondLoupeFacet is IDiamondLoupe, IERC165{
 
-    function facets() external view returns (Facet[] memory facets_) {
+    function getAllFacets() external view returns (Facet[] memory facets_) {
         LibDiamondStorage.DiamondStorage storage ds = LibDiamondStorage.diamondStorage();
         uint256 selectorCount = ds.selectors.length;
         facets_ = new Facet[](selectorCount);
         uint8[] memory numSelectorsOfFacet = new uint8[](selectorCount); 
         uint256 numFacets;
+
         bool exist;
         
         for(uint256 selectorIndex; selectorIndex < selectorCount; selectorIndex++){
@@ -70,5 +72,10 @@ contract DiamondLoupeFacet is IDiamondLoupe {
             mstore(facetFunctionSelectors_,numSelectors)
         }
 
+    }
+
+    function supportsInterface(bytes4 _interfaceId) external view returns(bool isSupport_) {
+        LibDiamondStorage.DiamondStorage storage ds = LibDiamondStorage.diamondStorage();
+        isSupport_ = ds.supportedInterfaces[_interfaceId];
     }
 }

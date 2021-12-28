@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma  solidity ^0.8.10;
+pragma  solidity ^0.8.11;
 pragma abicoder v2;
 
 interface IDiamondLoupe {
@@ -9,7 +9,7 @@ interface IDiamondLoupe {
 
     }
 
-    function facets() external view returns (Facet[] memory facets_);
+    function getAllFacets() external view returns (Facet[] memory facets_);
 
     function facetFunctionSelectors(address _facetAddress) external view returns(bytes4 [] memory facetFunctionSelectors_);
 

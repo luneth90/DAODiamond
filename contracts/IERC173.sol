@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.11;
 
 interface IERC173 {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);

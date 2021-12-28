@@ -3,7 +3,7 @@ import {expect} from 'chai';
 import * as deploy from './helper/deploy';
 import {Contract,Signer} from 'ethers';
 import { FacetCutAction, getSelectors,diamondAsFacet } from './helper/diamond';
-import {DiamondCutFacet,DiamondLoupeFacet, OwnershipFacet} from '../typechain';
+import {DiamondCutFacet,DiamondLoupeFacet, OwnershipFacet, IDiamondCut} from '../typechain';
 describe('Diamond',function(){
     let cutFacet: Contract,  loupeFacet: Contract,dao: Contract, ownershipFacet: Contract;
     let owner: Signer, user: Signer;
@@ -55,8 +55,8 @@ describe('Diamond',function(){
             const selectors_ = await loupe.facetFunctionSelectors(cutFacet.address);
             expect(selectors_).to.eql(selctors);
 
-            //await ownership.connect(owner).transferOwnership(await user.getAddress());
-            await dao.setContractOwner(await user.getAddress());
+            await ownership.connect(owner).transferOwnership(await user.getAddress());
+            //await dao.setContractOwner(await user.getAddress());
             expect(await ownership.owner()).to.eql(await user.getAddress());
        });
 

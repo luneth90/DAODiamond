@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma  solidity ^0.8.10;
+pragma  solidity ^0.8.11;
 pragma abicoder v2;
 
 import './IDiamondCut.sol';
@@ -14,7 +14,7 @@ import "./IDiamondLoupe.sol";
 contract Dao{
     constructor(IDiamondCut.FacetCut[] memory _diamondCut, address _owner) payable {
         require(_owner != address(0),"owner must not be 0x0");
-        LibDiamond.diamondCut(_diamondCut,address(0),new bytes(0));
+        LibDiamond.diamondCutInit(_diamondCut,address(0),new bytes(0));
         LibOwnership.setContractOwner(_owner);
         LibDiamondStorage.DiamondStorage storage ds = LibDiamondStorage.diamondStorage();
         ds.supportedInterfaces[type(IERC165).interfaceId] = true;
