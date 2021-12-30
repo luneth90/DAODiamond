@@ -2,8 +2,10 @@
 pragma  solidity ^0.8.11;
 pragma abicoder v2;
 
-library LibStakeStorage {
-    bytes32 constant STORAGE_POSITION = keccak256("dao.stake.storage");
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+library LibDaoStorage {
+    bytes32 constant STORAGE_POSITION = keccak256("dao.storage");
 
     struct Checkpoint{
         uint256 timestamp;
@@ -21,15 +23,15 @@ library LibStakeStorage {
         bool initialized;
         mapping(address => Stake[]) userStakeHistory;
 
-        Checkpoint[] bondStakedHistory;
+        Checkpoint[] voteStakedHistory;
 
         mapping(address => Checkpoint[]) delegatedPowerHistory;
 
-        //IERC20 bond;
+        IERC20 vote;
         //IRewards rewards;
     }
 
-    function stakeStorage() internal pure returns (Storage storage ds){
+    function daoStorage() internal pure returns (Storage storage ds){
         bytes32 positon = STORAGE_POSITION;
         assembly {
             ds.slot := positon

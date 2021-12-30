@@ -51,7 +51,6 @@ library LibDiamond {
 
     function initializeDiamondCut(address _init, bytes memory _calldata) internal {
         if (_init == address(0)) {
-            console.log(22);
             require(_calldata.length == 0,"empty");
             return;
         }
@@ -61,7 +60,6 @@ library LibDiamond {
             enforceHasContractCode(_init , "no code");
         }
 
-        console.log(55);
         (bool sucess, bytes memory error) = _init.delegatecall(_calldata);
         if (!sucess) {
             if(error.length >0){

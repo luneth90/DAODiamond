@@ -11,7 +11,7 @@ import "./IERC173.sol";
 import "./IDiamondCut.sol";
 import "./IDiamondLoupe.sol";
 
-contract Dao{
+contract DaoDiamond{
     constructor(IDiamondCut.FacetCut[] memory _diamondCut, address _owner) payable {
         require(_owner != address(0),"owner must not be 0x0");
         LibDiamond.diamondCutInit(_diamondCut,address(0),new bytes(0));
