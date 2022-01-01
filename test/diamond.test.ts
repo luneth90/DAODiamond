@@ -64,15 +64,18 @@ describe('DaoDiamond',function(){
             //await dao.setContractOwner(await user.getAddress());
             //expect(await ownership.owner()).to.eql(await user.getAddress());
             await initUser(user,amount);
-            await dao.connect(user).deposit(amount);
+            await dao.connect(user).deposit(amount,daoFacet.address);
+            expect(await voteMock.balanceOf(daoFacet.address)).to.eql(amount);
             expect(await dao.balanceOf(await user.getAddress())).to.eql(amount);
+            await dao.connect(user).withdraw(amount,daoFacet.address);
+            expect(await voteMock.balanceOf(await user.getAddress())).to.eql(amount);
        });
 
     });
 
     async function initUser(user: Signer, amount: BigNumber) {
         await voteMock.mint(await user.getAddress(),amount);
-        await voteMock.connect(user).approve(dao.address,amount)
+        await voteMock.connect(user).approve(daoDiamond.address,amount)
     }
 
 });

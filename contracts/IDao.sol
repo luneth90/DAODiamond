@@ -6,4 +6,6 @@ interface IDao{
 
     function deposit(uint256 amount) external;
 
+    function withdraw(uint256 amount) external;
+
 }
