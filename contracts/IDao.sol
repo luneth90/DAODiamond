@@ -8,4 +8,8 @@ interface IDao{
 
     function withdraw(uint256 amount) external;
 
+    function balanceOf(address _user) external view returns(uint256 _balance);
+
+    function totalStaked() external view returns(uint256 _balance);
+
 }

@@ -22,6 +22,11 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
+const ALCHEMY_API_KEY = "LM5D_zRIpEi2cc8x1NfMZxarelM_mMzI";
+const PRIVATE_KEY1 = "276df57441f69924ad3481a16d49816f74a0796f89df5caa232e2c1db9621133";
+const PRIVATE_KEY2 = "65115315358bd2fba2e6af46444f99e38cabfdd5120056d89ec38b1dbb9b2737";
+const PRIVATE_KEY3 = "22cced1c05d46c29237517b149c8e647390fc853574978392693e5fe5653fc2b";
+
 const config: HardhatUserConfig = {
   solidity: "0.8.11",
   networks: {
@@ -29,6 +34,11 @@ const config: HardhatUserConfig = {
       url: process.env.ROPSTEN_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    goerli: {
+      url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
+      accounts: [`${PRIVATE_KEY1}`,`${PRIVATE_KEY2}`,`${PRIVATE_KEY3}`],
+      gasPrice: 3000000000,
     },
   },
   gasReporter: {

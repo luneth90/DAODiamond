@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./LibOwnership.sol";
 import "./LibStakeStorage.sol";
 import "hardhat/console.sol";
+import "./IRewards.sol";
 
 library LibStake {
     using SafeMath for uint256;
@@ -14,36 +15,43 @@ library LibStake {
     event Deposit(address indexed sender, uint256 amount, uint256 newBalance);
     event Withdraw(address indexed receiver, uint256 amount, uint256 newBalance);
 
-    function init(address _vote) internal {
+    function init(address _vote,address _rewards) internal {
         LibStakeStorage.StakeStorage storage s = LibStakeStorage.stakeStorage();
         require(_vote != address(0),"Must not 0");
         require(!s.initialized,"Already initialized");
         LibOwnership.enforceIsContractOwner();
         s.initialized = true;
         s.vote = IERC20(_vote);
+        s.rewards = IRewards(_rewards);
     }
 
-    function deposit(uint256 amount,address receiver) internal {
+    function deposit(uint256 amount) internal {
         require(amount > 0,"Amount must grater than 0");
         LibStakeStorage.StakeStorage storage s = LibStakeStorage.stakeStorage();
         uint256 allowance = s.vote.allowance(msg.sender,address(this));
         require(allowance >= amount, "Token allowance too small");
+        //must be called before update balance
+        s.rewards.userAction(msg.sender);
 
         uint256 newBalance = balanceOf(msg.sender).add(amount);
         _updateUserBalance(s.userStakeHistory[msg.sender],newBalance);
-        s.vote.transferFrom(msg.sender,receiver,amount);
+        _updateStakedHistory(_totalStakedAt(block.timestamp).add(amount));
+        s.vote.transferFrom(msg.sender,address(this),amount);
         emit Deposit(msg.sender,amount,newBalance);
     }
 
     //diamond 模式存在局限性，同一token不能分区用途，由于执行上下文的关系，也没法方便的把token分配到不同contract中
-    function withdraw(uint256 amount,address from) internal {
+    function withdraw(uint256 amount) internal {
         require(amount > 0, "Amount must grater than 0");
         uint256 balance = balanceOf(msg.sender);
         require(amount <= balance,"Amount must smaller than balance");
         uint256 newBalance = balance.sub(amount);
         LibStakeStorage.StakeStorage storage s = LibStakeStorage.stakeStorage();
+        //must be called before update balance
+        s.rewards.userAction(msg.sender);
         _updateUserBalance(s.userStakeHistory[msg.sender],newBalance);
-        s.vote.transferFrom(from,msg.sender,amount);
+        _updateStakedHistory(_totalStakedAt(block.timestamp).sub(amount));
+        s.vote.transfer(msg.sender,amount);
         emit Withdraw(msg.sender,amount,newBalance);
     }
 
@@ -52,7 +60,11 @@ library LibStake {
     }
 
     function totalStaked() internal view returns(uint256 stakedAmount_){
-        stakedAmount_ = 0; 
+        stakedAmount_ = _totalStakedAt(block.timestamp);
+    }
+
+    function _totalStakedAt(uint256 timestamp) internal view returns(uint256 stakedAmount_){
+        stakedAmount_ = _search(LibStakeStorage.stakeStorage().voteStakedHistory,timestamp);
     }
 
     function _updateUserBalance(LibStakeStorage.Stake[] storage stakes, uint256 newBalance) internal {
@@ -66,6 +78,16 @@ library LibStake {
                 stakes.push(LibStakeStorage.Stake(block.timestamp,newBalance,old.expiryTimestamp,old.delegateTo));
             }
         } 
+    }
+
+    function _updateStakedHistory(uint256 _amount) internal {
+        LibStakeStorage.StakeStorage storage s = LibStakeStorage.stakeStorage();
+        if(s.voteStakedHistory.length == 0 || s.voteStakedHistory[s.voteStakedHistory.length-1].timestamp < block.timestamp) {
+            s.voteStakedHistory.push(LibStakeStorage.Checkpoint(block.timestamp,_amount));
+        } else {
+            LibStakeStorage.Checkpoint storage cp = s.voteStakedHistory[s.voteStakedHistory.length-1];
+            cp.amount = _amount;
+        }
     }
 
 
@@ -96,6 +118,33 @@ library LibStake {
                 stake_ = stakeHistory[mid];
                 return stake_;
             }else if(stakeHistory[mid].timestamp < timestamp) {
+                min = mid + 1;
+            }else {
+                max = mid - 1;
+            }
+        }
+    }
+
+
+    function _search(LibStakeStorage.Checkpoint[] storage _cp, uint256 timestamp) internal view returns(uint256 amount_){
+        if(_cp.length == 0 || timestamp < _cp[0].timestamp){
+            return 0;
+        }
+
+        uint256 min = 0;
+        uint256 max = _cp.length - 1;
+
+        if(timestamp >= _cp[max].timestamp){
+            amount_ = _cp[max].amount;
+            return amount_;
+        }
+
+        while(max > min){
+            uint256 mid = (max + min + 1) / 2;
+            if (_cp[mid].timestamp == timestamp) {
+                amount_ = _cp[mid].amount;
+                return amount_;
+            }else if(_cp[mid].timestamp < timestamp) {
                 min = mid + 1;
             }else {
                 max = mid - 1;

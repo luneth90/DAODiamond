@@ -4,7 +4,9 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
-
+import {Contract,Signer,BigNumber} from 'ethers';
+import * as deploy from '../test/helper/deploy';
+import {IStarknetCore} from '../typechain';
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
@@ -14,12 +16,21 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Greeter = await ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+    let owner: Signer;
+    let cutFacet: Contract,loupeFacet: Contract,ownershipFacet: Contract,daoFacet:Contract,daoDiamond:Contract,l1: Contract;
+    let starknetCore: IStarknetCore;
+    const signers = await ethers.getSigners();
+    owner = signers[0];
+    //cutFacet = await ethers.getContractAt("DiamondCutFacet", "0xAb7298a5FcC429050401aD9908D0AB3c644eFe3E");
+    //loupeFacet = await deploy.deployContract('DiamondLoupeFacet');
+    //ownershipFacet = await deploy.deployContract('OwnershipFacet');
+    //daoFacet = await deploy.deployContract('DaoFacet');
+    //daoDiamond = await deploy.deployDiamond('DaoDiamond',[cutFacet,loupeFacet,ownershipFacet,daoFacet],await owner.getAddress());
 
-  await greeter.deployed();
+    //starknetCore = (await ethers.getContractAt("IStarknetCore", "0xde29d060D45901Fb19ED6C6e959EB22d8626708e")) as IStarknetCore;
+    l1 = await deploy.deployContract('StarknetL1',["0xde29d060D45901Fb19ED6C6e959EB22d8626708e"]);
 
-  console.log("Greeter deployed to:", greeter.address);
+    console.log("deployed to:", l1.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
