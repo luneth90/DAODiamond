@@ -12,4 +12,8 @@ interface IDao{
 
     function totalStaked() external view returns(uint256 _balance);
 
+    //function totalStakedAt() external view returns(uint256 _balance);
+
+    //function votingPowerAtTs() external view returns(uint256 votingPower_);
+
 }

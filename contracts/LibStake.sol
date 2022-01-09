@@ -35,7 +35,7 @@ library LibStake {
 
         uint256 newBalance = balanceOf(msg.sender).add(amount);
         _updateUserBalance(s.userStakeHistory[msg.sender],newBalance);
-        _updateStakedHistory(_totalStakedAt(block.timestamp).add(amount));
+        _updateStakedHistory(totalStakedAt(block.timestamp).add(amount));
         s.vote.transferFrom(msg.sender,address(this),amount);
         emit Deposit(msg.sender,amount,newBalance);
     }
@@ -50,7 +50,7 @@ library LibStake {
         //must be called before update balance
         s.rewards.userAction(msg.sender);
         _updateUserBalance(s.userStakeHistory[msg.sender],newBalance);
-        _updateStakedHistory(_totalStakedAt(block.timestamp).sub(amount));
+        _updateStakedHistory(totalStakedAt(block.timestamp).sub(amount));
         s.vote.transfer(msg.sender,amount);
         emit Withdraw(msg.sender,amount,newBalance);
     }
@@ -60,11 +60,23 @@ library LibStake {
     }
 
     function totalStaked() internal view returns(uint256 stakedAmount_){
-        stakedAmount_ = _totalStakedAt(block.timestamp);
+        stakedAmount_ = totalStakedAt(block.timestamp);
     }
 
-    function _totalStakedAt(uint256 timestamp) internal view returns(uint256 stakedAmount_){
+
+    function totalStakedAt(uint256 timestamp) internal view returns(uint256 stakedAmount_){
         stakedAmount_ = _search(LibStakeStorage.stakeStorage().voteStakedHistory,timestamp);
+    }
+
+      // votingPower returns the voting power (bonus included) + delegated voting power for a user at the current block
+    function votingPower(address user) internal view returns (uint256) {
+        return votingPowerAtTs(user, block.timestamp);
+    }
+
+    // votingPowerAtTs returns the voting power (bonus included) + delegated voting power for a user at a point in time
+    function votingPowerAtTs(address user, uint256 timestamp) internal view returns (uint256 votingPower_) {
+        LibStakeStorage.Stake memory stake = _stakeAt(user, timestamp);
+        votingPower_ = stake.amount;
     }
 
     function _updateUserBalance(LibStakeStorage.Stake[] storage stakes, uint256 newBalance) internal {
