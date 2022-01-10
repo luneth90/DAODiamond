@@ -27,7 +27,7 @@ contract Rewards is IRewards,Ownable{
     RewardsPool rp;
     uint256 lastFetchTs;
     uint256 lastBalance;
-    uint256 lastMultiplier;
+    uint256 public lastMultiplier;
     mapping(address => uint256) userRewards;
     mapping(address => uint256) userMultiplier;
     IERC20 rewardsToken;
@@ -80,7 +80,7 @@ contract Rewards is IRewards,Ownable{
     }
 
     function _fetchRewards() internal{
-        uint256 ts = block.timestamp;
+       uint256 ts = block.timestamp;
        if (ts < rp.startTs){
            return;
        }else if(ts >= rp.endTs) {
