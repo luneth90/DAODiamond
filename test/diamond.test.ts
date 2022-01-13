@@ -103,7 +103,7 @@ describe('DaoDiamond',function(){
             expect(await dao.balanceOf(await user1.getAddress())).to.eql(BigNumber.from(0).mul(decimals));
        });
 
-       it('propose',async function(){
+       it('gov',async function(){
             //await voteMock.mint(await treasury.getAddress(),amount );
             await expect(dao.connect(user2).deposit(depositAmount)).to.be.not.reverted;
             await dao.activate();
