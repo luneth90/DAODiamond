@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 library LibGovStorage {
     bytes32 constant POSITION = keccak256("gov.storage");
-    uint256 constant ACTIVATION_THRESHOLD = 400_000*10**18;
+    uint256 constant ACTIVATION_THRESHOLD = 100*10**18;
     uint256 constant PROPOSAL_MAX_ACTIONS = 10;
     uint256 constant WARMUP_DURATION= 4 days;
     uint256 constant ACTIVATE_DURATION= 4 days;
@@ -69,6 +69,7 @@ library LibGovStorage {
         mapping(address => uint256) userLatestProposals;
         mapping(bytes32 => bool) queuedTxs;
         uint256 lastProposalId;
+        uint256 counter;
         bool isActive;
         
     }

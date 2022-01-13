@@ -5,6 +5,8 @@ pragma abicoder v2;
 import "./LibGovStorage.sol";
 import "./LibOwnership.sol";
 import "./LibStake.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 library LibGov {
     using SafeMath for uint256;
@@ -29,18 +31,22 @@ library LibGov {
         LibGovStorage.Proposal storage proposal = s.proposals[proposalId];
 
         if (proposal.canceled) {
+            console.log(11);
             return LibGovStorage.ProposalState.Canceled;
         }
 
         if (proposal.executed) {
+            console.log(22);
             return LibGovStorage.ProposalState.Executed;
         }
 
         if (block.timestamp <= proposal.createTime + proposal.pr.warmUpDuration) {
+            console.log(33);
             return LibGovStorage.ProposalState.WarmUp;
         }
 
         if (block.timestamp <= proposal.createTime + proposal.pr.warmUpDuration + proposal.pr.activeDuration) {
+            console.log(44);
             return LibGovStorage.ProposalState.Active;
         }
 
@@ -50,14 +56,16 @@ library LibGov {
         }
 
         if (proposal.eta == 0) {
+            console.log(55);
             return LibGovStorage.ProposalState.Accepted;
         }
 
         if (block.timestamp < proposal.eta) {
+            console.log(66);
             return LibGovStorage.ProposalState.Queued;
         }
 
-
+        console.log(77);
         return LibGovStorage.ProposalState.Expired;
     }
 
@@ -93,9 +101,9 @@ library LibGov {
         newProposal.calldatas = calldatas;
         newProposal.createTime = block.timestamp - 1;
         newProposal.pr.warmUpDuration = LibGovStorage.WARMUP_DURATION;
-        newProposal.pr.activeDuration = LibGovStorage.ACTIVATION_THRESHOLD;
+        newProposal.pr.activeDuration = LibGovStorage.ACTIVATE_DURATION;
         newProposal.pr.queueDuration = LibGovStorage.QUEUE_DURATION;
-        newProposal.pr.acceptanceThreshold = LibGovStorage.ACTIVATION_THRESHOLD;
+        newProposal.pr.acceptanceThreshold = LibGovStorage.ACCEPTANCE_THRESHOLD;
         newProposal.pr.minQuorum = LibGovStorage.MIN_QUORUM;
 
         s.lastProposalId = newProposalId_;
@@ -154,8 +162,11 @@ library LibGov {
 
 
 
-    function _canBeExecuted(uint256 proposalId) internal view returns (bool) {
-        return state(proposalId) == LibGovStorage.ProposalState.Queued;
+    function _canBeExecuted(uint256 proposalId) internal view returns (bool canExecuted_) {
+        canExecuted_ = false;
+        if (state(proposalId) == LibGovStorage.ProposalState.Queued) {
+            canExecuted_ = true;
+        }
     }
 
     function _getVoteStartTimestamp(LibGovStorage.Proposal storage proposal) internal view returns (uint256 voteStartTs_) {
@@ -180,7 +191,7 @@ library LibGov {
     }
 
     function _executeTx(address target, uint256 value, string memory signer, bytes memory data,uint256 eta) internal returns(bytes memory data_){
-        require(block.timestamp >= eta,"error eta");
+        //require(block.timestamp >= eta,"error eta");
         LibGovStorage.GovStorage storage s= LibGovStorage.govStorage();
         bytes32 txHash_ = _getTxHash(target,value, signer,data,eta);
         s.queuedTxs[txHash_] = false;
@@ -191,7 +202,9 @@ library LibGov {
             callData = abi.encodePacked(bytes4(keccak256(bytes(signer))),data);
         }
         bool sucess;
+        console.log(5888);
         (sucess, data_) = target.call{value:value}(callData);
+        console.log("s = %s",string(data_));
         require(sucess,string(data_));
 
     }

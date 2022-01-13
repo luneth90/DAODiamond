@@ -83,8 +83,8 @@ describe('DaoDiamond',function(){
         beforeEach(async function(){
             snapId = await ethers.provider.send('evm_snapshot', []);
             await initUser(user1,amount);
-            await initUser(user2,amount);
-            await initUser(user3,amount);
+            await initUser(user2,amount.mul(2));
+            await initUser(user3,amount.mul(3));
         });
 
         afterEach(async function () {
@@ -103,6 +103,51 @@ describe('DaoDiamond',function(){
             expect(await dao.balanceOf(await user1.getAddress())).to.eql(BigNumber.from(0).mul(decimals));
        });
 
+       it('propose',async function(){
+            //await voteMock.mint(await treasury.getAddress(),amount );
+            await expect(dao.connect(user2).deposit(depositAmount)).to.be.not.reverted;
+            await dao.activate();
+            const targets = [daoFacet.address];
+            const values = [0];
+            const signers = ['counterPlus(uint256)'];
+            const calldatas = [ethers.utils.defaultAbiCoder.encode(['uint256'], [1])];
+            //const caladatas = ['0x'];
+            await expect(dao.connect(user2).propose(targets,values,signers,calldatas,"desc","title")).to.be.not.reverted;
+            const ts = await helpers.getLatestBlockTimestamp();
+            await helpers.moveAtTimestamp(ts + 60*60*24*4);
+            await expect(dao.connect(user2).vote(1, true)).to.be.not.reverted;
+            const ts1 = await helpers.getLatestBlockTimestamp();
+            await helpers.moveAtTimestamp(ts1 + 60*60*24*4);
+            await expect(dao.connect(user2).queue(1)).to.be.not.reverted;
+            const ts2 = await helpers.getLatestBlockTimestamp();
+            await helpers.moveAtTimestamp(ts2 + 60*60*24*1);
+            await expect(dao.connect(user2).execute(1)).to.be.not.reverted;
+            //diamond模式对dao设计不友好，任务自动执行时会调用call导致切换到target环境上下文，这导致整个系统上下文极其混乱，容易出bug
+            expect(await daoFacet.connect(user2).getCounter()).to.be.eql(BigNumber.from(1));
+       });
+
+
+
+
+
+    });
+
+    describe('Rewards', async function(){
+        let snapId: any,depositAmount: BigNumber;
+        before(async function(){
+            depositAmount = BigNumber.from(100).mul(decimals);
+        });
+
+        beforeEach(async function(){
+            snapId = await ethers.provider.send('evm_snapshot', []);
+            await initUser(user1,amount);
+            await initUser(user2,amount.mul(2));
+            await initUser(user3,amount.mul(3));
+        });
+
+        afterEach(async function () {
+            await ethers.provider.send('evm_revert', [snapId]);
+        });
        it('one user rewards',async function(){
             const {start, end} = await setupRewards();
             await dao.connect(user1).deposit(depositAmount)
@@ -121,41 +166,61 @@ describe('DaoDiamond',function(){
             const {start, end} = await setupRewards();
             await dao.connect(user1).deposit(depositAmount)
             const despositTs1 = await helpers.getLatestBlockTimestamp();
-            const rewardsAmount_lucky = calcReward(start,despositTs1,end-start,amount);
+            const fetchAmount_lucky = calcReward(start,despositTs1,end-start,amount);
 
-            await dao.connect(user2).deposit(depositAmount)
+            await dao.connect(user2).deposit(depositAmount.mul(2))
             const despositTs2 = await helpers.getLatestBlockTimestamp();
-            const rewardsAmount_2= calcReward(despositTs1,despositTs2,end-start,amount);
+            const fetchAmount_2= calcReward(despositTs1,despositTs2,end-start,amount);
+            //lucky rewards 加入总量计算
+            const multiplier_2= fetchAmount_lucky.add(fetchAmount_2).mul(decimals).div(depositAmount);
 
-            await dao.connect(user3).deposit(depositAmount)
+            await dao.connect(user3).deposit(depositAmount.mul(3))
             const despositTs3 = await helpers.getLatestBlockTimestamp();
-            const rewardsAmount_3= calcReward(despositTs2,despositTs3,end-start,amount);
-            expect(await voteMock.balanceOf(rewards.address)).to.eql(rewardsAmount_lucky.add(rewardsAmount_2).add(rewardsAmount_3));
-
+            const fetchAmount_3= calcReward(despositTs2,despositTs3,end-start,amount);
+            const multiplier_3= fetchAmount_3.mul(decimals).div(depositAmount.add(depositAmount.mul(2)));
+            expect(await voteMock.balanceOf(rewards.address)).to.eql(fetchAmount_lucky.add(fetchAmount_2).add(fetchAmount_3));
+            expect(await rewards.lastMultiplier()).to.eql(multiplier_2.add(multiplier_3));
 
             await helpers.moveAtTimestamp(start + 60*60*24*1);
 
-            let tx1: Transaction = await rewards.connect(user1).claim();
-            const rewardsAmount1 = (await rewards.lastMultiplier()).mul(depositAmount).div(decimals);
-            expect(tx1).to.emit(rewards, "Claim").withArgs(await user1.getAddress(),rewardsAmount1);
-            
-            /*
-            await helpers.moveAtTimestamp(start + 60*60*24*1);
-
+            //计算user2的rewards
             let tx2: Transaction = await rewards.connect(user2).claim();
             const claimTs2 = await helpers.getLatestBlockTimestamp();
-            const rewardsAmount2 = calcReward(despositTs2,claimTs2,end-start,amount);
-            expect(tx2).to.emit(rewards, "Claim").withArgs(await user2.getAddress(),rewardsAmount2.add(rewardsAmount_3));
+            const fetchAmount_4= calcReward(despositTs3,claimTs2,end-start,amount);
+            //user2 的multiplier需要手动计算
+            const multiplier_4= fetchAmount_4.mul(decimals).div(depositAmount.add(depositAmount.mul(2)).add(depositAmount.mul(3)));
+            const rewardsAmount_user2 = multiplier_3.add(multiplier_4).mul(depositAmount.mul(2)).div(decimals);
+            expect(tx2).to.emit(rewards, "Claim").withArgs(await user2.getAddress(),rewardsAmount_user2);
 
+            //计算user1的rewards
+            let tx1: Transaction = await rewards.connect(user1).claim();
+            const claimTs1 = await helpers.getLatestBlockTimestamp();
+            const fetchAmount_5= calcReward(claimTs2,claimTs1,end-start,amount);
+            const multiplier_5= fetchAmount_5.mul(decimals).div(depositAmount.add(depositAmount.mul(2)).add(depositAmount.mul(3)));
+            //user1 包含了所有的multiplier，所以可以直接获取最新值,也可以手动计算
+            const rewardsAmount_user1 = (await rewards.lastMultiplier()).mul(depositAmount).div(decimals);
+            expect(tx1).to.emit(rewards, "Claim").withArgs(await user1.getAddress(),rewardsAmount_user1);
+
+            //计算user3的rewards
             let tx3: Transaction = await rewards.connect(user3).claim();
             const claimTs3 = await helpers.getLatestBlockTimestamp();
-            const rewardsAmount3 = calcReward(despositTs3,claimTs3,end-start,amount);
-            expect(tx3).to.emit(rewards, "Claim").withArgs(await user3.getAddress(),rewardsAmount3);
-            */
+            const fetchAmount_6= calcReward(claimTs1,claimTs3,end-start,amount);
+            const multiplier_6= fetchAmount_6.mul(decimals).div(depositAmount.add(depositAmount.mul(2)).add(depositAmount.mul(3)));
+            const rewardsAmount_user3 = multiplier_4.add(multiplier_5).add(multiplier_6).mul(depositAmount.mul(3)).div(decimals);
+            expect(tx3).to.emit(rewards, "Claim").withArgs(await user3.getAddress(),rewardsAmount_user3);
+
             
        });
 
     });
+
+
+
+
+
+
+
+
 
     async function initUser(user: Signer, amount: BigNumber) {
         await voteMock.mint(await user.getAddress(),amount);

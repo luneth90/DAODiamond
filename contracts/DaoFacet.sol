@@ -7,6 +7,7 @@ import "./LibStake.sol";
 import "./LibGov.sol";
 import "./IRewards.sol";
 import "./LibStakeStorage.sol";
+import "hardhat/console.sol";
 
 contract DaoFacet is IDao  {
 
@@ -28,6 +29,39 @@ contract DaoFacet is IDao  {
 
     function totalStaked() external view returns(uint256 _balance){
         _balance = LibStake.totalStaked();
+    }
+
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        string[] memory signers,
+        bytes[] memory calldatas,
+        string memory desc,
+        string memory title
+    ) external returns(uint256 newProposalId_){
+        newProposalId_ = LibGov.propose(targets,values,signers,calldatas,desc,title);
+    }
+
+    function activate() external {
+        LibGov.activate();
+    }
+
+    function counterPlus(uint256 num) external{ 
+        LibGovStorage.GovStorage storage s = LibGovStorage.govStorage();
+        s.counter = s.counter + num;
+    }
+
+    function getCounter() external view returns(uint256 counter_){ 
+        LibGovStorage.GovStorage storage s = LibGovStorage.govStorage();
+        counter_ = s.counter;
+    }
+
+    function vote(uint256 proposalId, bool isFor) external{
+        LibGov.vote(proposalId,isFor);
+    }
+
+    function queue(uint256 proposalId) external{
+        LibGov.queue(proposalId);
     }
 
     function execute(uint256 proposalId) external payable {

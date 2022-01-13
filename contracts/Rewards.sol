@@ -101,14 +101,19 @@ contract Rewards is IRewards,Ownable{
     function _updateBalance() internal {
         uint256 balance = rewardsToken.balanceOf(address(this));
         if(balance ==0 || lastBalance >= balance){
+        //没有新fetch token，只是claim后更新
             lastBalance = balance;
             return;
         }
         uint256 totalStaked = dao.totalStaked();
         if(totalStaked == 0){
+        //新fetch token，但是如果没有stake直接返回,第一次deposit会进入此分支，因为是在更新用户staked数量前触发
+        //此时lastBalance=0,lastMultiplier=0,相当于系统把第一次deposit的间隙产生的rewards全部送给了第一个deposit的用户
+        //可以称为lucky rewards,但并不计算对应multiplier，而是把fetch的数量加入balance总量计算
             return;
         }
 
+        //新fetch token,并且有stake计算新增的multiplier
         uint256 diffAmount = balance.sub(lastBalance);
         lastMultiplier = lastMultiplier.add(diffAmount.mul(decimals).div(totalStaked));
         lastBalance = balance;

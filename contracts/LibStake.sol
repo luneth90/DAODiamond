@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: Unlicensh
 pragma  solidity ^0.8.11;
 pragma abicoder v2;
 
@@ -8,6 +8,8 @@ import "./LibOwnership.sol";
 import "./LibStakeStorage.sol";
 import "hardhat/console.sol";
 import "./IRewards.sol";
+import "./LibGovStorage.sol";
+import "./LibGov.sol";
 
 library LibStake {
     using SafeMath for uint256;
@@ -31,6 +33,7 @@ library LibStake {
         uint256 allowance = s.vote.allowance(msg.sender,address(this));
         require(allowance >= amount, "Token allowance too small");
         //must be called before update balance
+        //先fetch token，结算之前的用户收益,不然新存入的token会影响staked总量,从而影响之前用户收益
         s.rewards.userAction(msg.sender);
 
         uint256 newBalance = balanceOf(msg.sender).add(amount);
@@ -48,6 +51,7 @@ library LibStake {
         uint256 newBalance = balance.sub(amount);
         LibStakeStorage.StakeStorage storage s = LibStakeStorage.stakeStorage();
         //must be called before update balance
+        //先fetch token，结算之前的用户收益,不然新存入的token会影响staked总量,从而影响之前用户收益
         s.rewards.userAction(msg.sender);
         _updateUserBalance(s.userStakeHistory[msg.sender],newBalance);
         _updateStakedHistory(totalStakedAt(block.timestamp).sub(amount));

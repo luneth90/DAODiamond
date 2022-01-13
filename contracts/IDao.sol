@@ -15,5 +15,23 @@ interface IDao{
     //function totalStakedAt() external view returns(uint256 _balance);
 
     //function votingPowerAtTs() external view returns(uint256 votingPower_);
+    function activate() external;
+
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        string[] memory signers,
+        bytes[] memory calldatas,
+        string memory desc,
+        string memory title
+    ) external returns(uint256 newProposalId_);
+
+    function getCounter() external view returns(uint256 counter_);
+
+    function vote(uint256 proposalId, bool isFor) external;
+
+    function queue(uint256 proposalId) external;
+
+    function execute(uint256 proposalId) external payable;
 
 }
